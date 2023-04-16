@@ -1,11 +1,9 @@
 package hardsoftskills.kafka.demo;
 
-import hardsoftskills.kafka.example.ConsumerDemo;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,26 +14,42 @@ import java.util.Properties;
 
 public class Consumer {
     public static void main(String[] args) {
+        final String BOOTSTRAP_SERVER = "127.0.0.1:9092";
+        final String TOPIC_NAME = "demo-topic";
+        final String GROUP_ID = "group2";
+
+        // Initialize Logger
         Logger logger = LoggerFactory.getLogger(Consumer.class);
 
+        // Create Consumer properties
         Properties properties = new Properties();
-        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
-        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
-        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "group2");
-        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest"); //earliest, none
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVER);
+        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
 
-        KafkaConsumer<Integer, String> consumer = new KafkaConsumer<>(properties);
-        consumer.subscribe(Collections.singleton("demo-topic1"));
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
 
-        while (true) {
-            ConsumerRecords<Integer, String> records = consumer.poll(Duration.ofMillis(100));
-            for (ConsumerRecord<Integer, String> record : records) {
-                logger.info("key " + record.key() + " value " + record.value() + " partition " +
-                        record.partition() + " offset" + record.offset());
+        try {
+            // Subscribing on topic
+            consumer.subscribe(Collections.singleton(TOPIC_NAME));
+
+            while (true) {
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+
+                for (ConsumerRecord<String, String> record : records) {
+                    logger.info("key: " + record.key()
+                            + " value: " + record.value()
+                            + " partition: " + record.partition()
+                            + " offset: " + record.offset());
+                }
             }
-
+        } catch (Exception err) {
+            logger.error("Unexpected exception", err);
+        } finally {
+            consumer.close();
+            logger.info("The consumer was closed");
         }
-
     }
 }
